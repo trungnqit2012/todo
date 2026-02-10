@@ -4,3 +4,9 @@ export type Todo = {
   completed: boolean;
   created_at: string;
 };
+
+export type TodoInsert = {
+  id: string;
+  title: string;
+  completed: boolean;
+};
