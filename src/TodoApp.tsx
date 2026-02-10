@@ -1,61 +1,34 @@
 import { useState } from "react";
 import { useTodos } from "./hooks/useTodos";
+import { useAuth } from "./hooks/useAuth";
 
 export default function TodoApp() {
-  const {
-    todos,
-    itemsLeft,
-    loading,
-    error,
-    filter,
-    setFilter,
-    add,
-    toggle,
-    remove,
-  } = useTodos();
-
+  const { user } = useAuth();
+  const { todos, add, toggle, remove } = useTodos();
   const [text, setText] = useState("");
 
-  if (loading) return <p>Loading todos...</p>;
-  if (error) return <p>Error: {error}</p>;
+  const disabled = !user;
 
   return (
-    <div style={{ marginTop: 24 }}>
+    <div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (!text.trim()) return;
+          if (!text.trim() || disabled) return;
           add(text);
           setText("");
         }}
       >
         <input
           value={text}
+          disabled={disabled}
           onChange={(e) => setText(e.target.value)}
-          placeholder="What needs to be done?"
+          placeholder={
+            disabled ? "Initializing session..." : "What needs to be done?"
+          }
         />
-        <button>Add</button>
+        <button disabled={disabled}>Add</button>
       </form>
-
-      <p>{itemsLeft} items left</p>
-
-      <div>
-        <button onClick={() => setFilter("all")} disabled={filter === "all"}>
-          All
-        </button>
-        <button
-          onClick={() => setFilter("active")}
-          disabled={filter === "active"}
-        >
-          Active
-        </button>
-        <button
-          onClick={() => setFilter("completed")}
-          disabled={filter === "completed"}
-        >
-          Completed
-        </button>
-      </div>
 
       <ul>
         {todos.map((todo) => (
@@ -68,7 +41,6 @@ export default function TodoApp() {
               />
               {todo.title}
             </label>
-
             <button onClick={() => remove(todo.id)}>❌</button>
           </li>
         ))}

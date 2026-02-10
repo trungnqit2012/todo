@@ -6,7 +6,10 @@ import TodoApp from "./TodoApp";
 function App() {
   const { user, loading } = useAuth();
 
-  if (loading) return <p>Loading...</p>;
+  // ⛔ Chặn render khi session chưa hydrate xong
+  if (loading) {
+    return <p>Initializing session...</p>;
+  }
 
   if (!user) {
     return <AuthForm />;
@@ -14,9 +17,11 @@ function App() {
 
   return (
     <div style={{ padding: 24 }}>
-      <header>
-        <p>Hi {user.email}</p>
-        <button onClick={signOut}>Logout</button>
+      <header style={{ marginBottom: 16 }}>
+        <span>{user.email}</span>
+        <button onClick={signOut} style={{ marginLeft: 12 }}>
+          Logout
+        </button>
       </header>
 
       <TodoApp />
