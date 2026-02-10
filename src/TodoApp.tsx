@@ -6,8 +6,19 @@ import { TodoList } from "./ui/TodoList";
 import { EmptyState } from "./ui/EmptyState";
 
 export default function TodoApp() {
-  const { todos, filter, setFilter, itemsLeft, add, toggle, remove, isAdding } =
-    useTodos();
+  const {
+    todos,
+    filter,
+    setFilter,
+    itemsLeft,
+    completedCount,
+    hasPendingDelete,
+    add,
+    toggle,
+    remove,
+    clearCompleted,
+    isAdding,
+  } = useTodos();
 
   const [text, setText] = useState("");
 
@@ -19,7 +30,6 @@ export default function TodoApp() {
 
   return (
     <div>
-      {/* INPUT + ADD BUTTON */}
       <TodoInput
         value={text}
         onChange={setText}
@@ -27,13 +37,18 @@ export default function TodoApp() {
         isAdding={isAdding}
       />
 
-      {/* FOOTER */}
       <div className="flex items-center justify-between mb-4 text-sm text-slate-500">
         <span>{itemsLeft} items left</span>
-        <TodoFilter value={filter} onChange={setFilter} />
+
+        <TodoFilter
+          value={filter}
+          onChange={setFilter}
+          completedCount={completedCount}
+          disabled={hasPendingDelete}
+          onClearCompleted={clearCompleted}
+        />
       </div>
 
-      {/* LIST / EMPTY */}
       {todos.length === 0 ? (
         <EmptyState />
       ) : (

@@ -4,7 +4,7 @@ import { getTodos, addTodo, toggleTodo, deleteTodo } from "../api/todoApi";
 import type { Filter } from "../types/filter";
 import type { Todo, TodoInsert } from "../types/todo";
 
-/* ================= TYPES ================= */
+/* ---------- types ---------- */
 
 type OptimisticTodo = TodoInsert & {
   optimistic: true;
@@ -16,50 +16,63 @@ type PendingDeleteState = {
 
 type UITodo = (Todo | OptimisticTodo) & PendingDeleteState;
 
-/* ================= CONSTANTS ================= */
+const UNDO_TIMEOUT = 4000;
 
-const UNDO_TIMEOUT = 4000; // ms
+/* ---------- hook ---------- */
 
 export function useTodos() {
-  const [todos, setTodos] = useState<UITodo[]>([]);
+  /** 🔑 STATE GỐC – KHÔNG FILTER */
+  const [allTodos, setAllTodos] = useState<UITodo[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
 
-  // id -> timer
   const pendingDeletes = useRef<Map<string, number>>(new Map());
 
-  /* ================= LOAD TODOS ================= */
+  /* ---------- load ---------- */
 
   useEffect(() => {
     getTodos()
-      .then((data) => setTodos(data))
+      .then(setAllTodos)
       .catch(() => toast.error("Failed to load todos"))
       .finally(() => setLoading(false));
   }, []);
 
-  /* ================= DERIVED STATE ================= */
+  /* ---------- derived (VIEW ONLY) ---------- */
 
   const filteredTodos = useMemo(() => {
     if (filter === "active") {
-      return todos.filter((t) => !t.completed && !t.pendingDelete);
+      return allTodos.filter((t) => !t.completed && !t.pendingDelete);
     }
+
     if (filter === "completed") {
-      return todos.filter((t) => t.completed && !t.pendingDelete);
+      return allTodos.filter((t) => t.completed && !t.pendingDelete);
     }
-    return todos;
-  }, [todos, filter]);
+
+    return allTodos;
+  }, [allTodos, filter]);
+
+  /* ---------- derived (GLOBAL STATS) ---------- */
 
   const itemsLeft = useMemo(
-    () => todos.filter((t) => !t.completed && !t.pendingDelete).length,
-    [todos],
+    () => allTodos.filter((t) => !t.completed && !t.pendingDelete).length,
+    [allTodos],
   );
 
-  /* ================= ADD TODO ================= */
+  const completedCount = useMemo(
+    () => allTodos.filter((t) => t.completed && !t.pendingDelete).length,
+    [allTodos],
+  );
+
+  const hasPendingDelete = useMemo(
+    () => allTodos.some((t) => t.pendingDelete),
+    [allTodos],
+  );
+
+  /* ---------- add ---------- */
 
   const add = async (title: string) => {
     if (isAdding) return;
-
     setIsAdding(true);
 
     const tempId = crypto.randomUUID();
@@ -71,30 +84,28 @@ export function useTodos() {
       optimistic: true,
     };
 
-    setTodos((prev) => [optimisticTodo, ...prev]);
+    setAllTodos((prev) => [optimisticTodo, ...prev]);
 
     const toastId = toast.loading("Adding todo...");
 
     try {
       const saved = await addTodo(title);
 
-      setTodos((prev) => prev.map((t) => (t.id === tempId ? saved : t)));
+      setAllTodos((prev) => prev.map((t) => (t.id === tempId ? saved : t)));
 
       toast.success("Todo added", { id: toastId });
     } catch {
-      setTodos((prev) => prev.filter((t) => t.id !== tempId));
-      toast.error("Failed to add todo", {
-        id: toastId,
-      });
+      setAllTodos((prev) => prev.filter((t) => t.id !== tempId));
+      toast.error("Failed to add todo", { id: toastId });
     } finally {
       setIsAdding(false);
     }
   };
 
-  /* ================= TOGGLE TODO ================= */
+  /* ---------- toggle ---------- */
 
   const toggle = async (id: string, completed: boolean) => {
-    setTodos((prev) =>
+    setAllTodos((prev) =>
       prev.map((t) => (t.id === id ? { ...t, completed } : t)),
     );
 
@@ -105,22 +116,20 @@ export function useTodos() {
     }
   };
 
-  /* ================= DELETE WITH UNDO ================= */
+  /* ---------- delete + undo ---------- */
 
   const remove = (id: string) => {
-    // mark pending delete
-    setTodos((prev) =>
+    setAllTodos((prev) =>
       prev.map((t) => (t.id === id ? { ...t, pendingDelete: true } : t)),
     );
 
     const timer = window.setTimeout(async () => {
       try {
         await deleteTodo(id);
-        setTodos((prev) => prev.filter((t) => t.id !== id));
+        setAllTodos((prev) => prev.filter((t) => t.id !== id));
       } catch {
         toast.error("Failed to delete todo");
-        // rollback pending state
-        setTodos((prev) =>
+        setAllTodos((prev) =>
           prev.map((t) => (t.id === id ? { ...t, pendingDelete: false } : t)),
         );
       } finally {
@@ -152,7 +161,7 @@ export function useTodos() {
 
     clearTimeout(timer);
 
-    setTodos((prev) =>
+    setAllTodos((prev) =>
       prev.map((t) => (t.id === id ? { ...t, pendingDelete: false } : t)),
     );
 
@@ -161,15 +170,39 @@ export function useTodos() {
     toast.success("Undo successful");
   };
 
+  /* ---------- clear completed ---------- */
+
+  const clearCompleted = async () => {
+    const completedIds = allTodos
+      .filter((t) => t.completed && !t.pendingDelete)
+      .map((t) => t.id);
+
+    if (completedIds.length === 0) return;
+
+    setAllTodos((prev) => prev.filter((t) => !completedIds.includes(t.id)));
+
+    try {
+      await Promise.all(completedIds.map((id) => deleteTodo(id)));
+      toast.success("Completed todos cleared");
+    } catch {
+      toast.error("Failed to clear completed todos");
+    }
+  };
+
+  /* ---------- return ---------- */
+
   return {
     todos: filteredTodos,
     loading,
     filter,
     setFilter,
     itemsLeft,
+    completedCount,
+    hasPendingDelete,
     add,
     toggle,
     remove,
+    clearCompleted,
     isAdding,
   };
 }

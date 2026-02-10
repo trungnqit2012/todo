@@ -1,9 +1,7 @@
 import clsx from "clsx";
+import { useCallback, useState } from "react";
+import { Tooltip } from "./Tooltip";
 
-/**
- * Todo dành cho UI
- * KHÔNG phụ thuộc DB fields (created_at)
- */
 export type UITodo = {
   id: string;
   title: string;
@@ -18,32 +16,57 @@ type Props = {
 };
 
 export function TodoItem({ todo, onToggle, onDelete }: Props) {
+  const isDeleting = todo.pendingDelete;
+
+  const [isClamped, setIsClamped] = useState(false);
+
+  // ✅ Callback ref — đo DOM đúng cách, không effect
+  const titleRef = useCallback((el: HTMLSpanElement | null) => {
+    if (!el) return;
+
+    const isOverflowing =
+      el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth;
+
+    // ❗ chỉ setState khi THỰC SỰ đổi
+    setIsClamped((prev) => (prev !== isOverflowing ? isOverflowing : prev));
+  }, []);
+
+  const titleNode = (
+    <span
+      ref={titleRef}
+      className={clsx(
+        "block text-sm select-none",
+        "line-clamp-1 sm:line-clamp-2",
+        todo.completed && "line-through text-slate-400",
+      )}
+    >
+      {todo.title}
+    </span>
+  );
+
   return (
     <li
       className={clsx(
-        "flex items-center justify-between px-3 py-2 rounded-xl transition",
+        "flex items-start justify-between gap-3 px-3 py-2 rounded-xl transition-all",
         "hover:bg-slate-50",
-        todo.pendingDelete ? "todo-exit opacity-40 line-through" : "todo-enter",
+        isDeleting && "opacity-50 line-through pointer-events-none",
       )}
     >
       {/* LEFT */}
-      <label className="flex items-center gap-3 cursor-pointer select-none">
-        {/* Hidden native checkbox */}
+      <label className="flex items-start gap-3 cursor-pointer min-w-0 flex-1">
         <input
           type="checkbox"
           checked={todo.completed}
-          disabled={todo.pendingDelete}
+          disabled={isDeleting}
           onChange={(e) => onToggle(todo.id, e.target.checked)}
           className="sr-only"
         />
 
-        {/* Custom checkbox */}
+        {/* Checkbox */}
         <span
           className={clsx(
-            "w-5 h-5 rounded-full border flex items-center justify-center",
-            "transition",
+            "mt-1 w-5 h-5 shrink-0 rounded-full border flex items-center justify-center transition",
             todo.completed ? "bg-blue-500 border-blue-500" : "border-slate-300",
-            todo.pendingDelete && "opacity-50 cursor-not-allowed",
           )}
         >
           {todo.completed && (
@@ -51,27 +74,41 @@ export function TodoItem({ todo, onToggle, onDelete }: Props) {
           )}
         </span>
 
-        {/* Title */}
-        <span
-          className={clsx(
-            "select-none",
-            todo.completed && "line-through text-slate-400",
-          )}
-        >
-          {todo.title}
-        </span>
+        {/* TITLE */}
+        {isClamped ? (
+          <Tooltip content={todo.title}>{titleNode}</Tooltip>
+        ) : (
+          titleNode
+        )}
       </label>
 
       {/* RIGHT */}
-      <button
-        onClick={() => onDelete(todo.id)}
-        disabled={todo.pendingDelete}
-        className="text-slate-400 hover:text-red-500
-                   disabled:opacity-40 disabled:cursor-not-allowed"
-        aria-label="Delete todo"
-      >
-        ✕
-      </button>
+      <div className="w-5 h-5 flex items-center justify-center shrink-0">
+        {isDeleting ? (
+          <span
+            className="
+              w-4 h-4
+              border-2 border-slate-300
+              border-t-slate-500
+              rounded-full
+              animate-spin
+            "
+          />
+        ) : (
+          <Tooltip content="Delete todo">
+            <button
+              onClick={() => onDelete(todo.id)}
+              className="
+                text-slate-400 hover:text-red-500
+                transition
+              "
+              aria-label={`Delete todo ${todo.title}`}
+            >
+              ✕
+            </button>
+          </Tooltip>
+        )}
+      </div>
     </li>
   );
 }
