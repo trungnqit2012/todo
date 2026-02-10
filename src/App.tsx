@@ -6,7 +6,7 @@ import TodoApp from "./TodoApp";
 function App() {
   const { user, loading } = useAuth();
 
-  if (loading) return <p>Loading session...</p>;
+  if (loading) return <p>Loading...</p>;
 
   if (!user) {
     return <AuthForm />;

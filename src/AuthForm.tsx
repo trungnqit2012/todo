@@ -12,36 +12,33 @@ export default function AuthForm() {
     setLoading(true);
     setError(null);
 
-    try {
-      const { error } = await signIn(email, password);
-      if (error) throw error;
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Something went wrong");
-      }
-    } finally {
-      setLoading(false);
+    const { error } = await signIn(email, password);
+
+    if (error) {
+      setError(error.message);
     }
+
+    setLoading(false);
   }
 
   async function handleRegister() {
     setLoading(true);
     setError(null);
 
-    try {
-      const { error } = await signUp(email, password);
-      if (error) throw error;
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Something went wrong");
-      }
-    } finally {
+    const { data, error } = await signUp(email, password);
+
+    if (error) {
+      setError(error.message);
       setLoading(false);
+      return;
     }
+
+    // DEV MODE (confirm email OFF)
+    if (!data.session) {
+      setError("User created. Please login.");
+    }
+
+    setLoading(false);
   }
 
   return (
@@ -67,7 +64,7 @@ export default function AuthForm() {
 
         <div style={{ marginTop: 12 }}>
           <button type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
+            Login
           </button>
 
           <button
