@@ -100,7 +100,7 @@ export function TodoItem({ todo, onToggle, onDelete }: Props) {
               onClick={() => onDelete(todo.id)}
               className="
                 text-slate-400 hover:text-red-500
-                transition
+                transition cursor-pointer
               "
               aria-label={`Delete todo ${todo.title}`}
             >

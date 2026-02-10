@@ -25,7 +25,7 @@ export function TodoFilter({
             key={f}
             onClick={() => onChange(f)}
             className={clsx(
-              "px-2 py-1 text-sm rounded-md transition",
+              "px-2 py-1 text-sm rounded-md transition cursor-pointer",
               value === f
                 ? "bg-blue-500 text-white"
                 : "text-slate-500 hover:bg-slate-100",

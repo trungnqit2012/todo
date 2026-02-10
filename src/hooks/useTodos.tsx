@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { getTodos, addTodo, toggleTodo, deleteTodo } from "../api/todoApi";
 import type { Filter } from "../types/filter";
 import type { Todo, TodoInsert } from "../types/todo";
+import { APP_CONFIG } from "../config/app.config";
 
 /* ---------- types ---------- */
 
@@ -15,9 +16,6 @@ type PendingDeleteState = {
 };
 
 type UITodo = (Todo | OptimisticTodo) & PendingDeleteState;
-
-const UNDO_TIMEOUT = 4000;
-const PAGE_SIZE = 10;
 
 /* ---------- hook ---------- */
 
@@ -32,6 +30,9 @@ export function useTodos() {
   const [page, setPage] = useState(1);
 
   const pendingDeletes = useRef<Map<string, number>>(new Map());
+
+  const PAGE_SIZE = APP_CONFIG.PAGE_SIZE;
+  const UNDO_TIMEOUT = APP_CONFIG.UNDO_TIMEOUT;
 
   /* ---------- load ---------- */
 
@@ -63,7 +64,7 @@ export function useTodos() {
   const pagedTodos = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
     return filteredTodos.slice(start, start + PAGE_SIZE);
-  }, [filteredTodos, page]);
+  }, [filteredTodos, page, PAGE_SIZE]);
 
   // reset page khi đổi filter
   useEffect(() => {
@@ -227,6 +228,7 @@ export function useTodos() {
     // paging
     page,
     totalPages,
+    setPage,
     nextPage: () => setPage((p) => Math.min(p + 1, totalPages)),
     prevPage: () => setPage((p) => Math.max(p - 1, 1)),
   };

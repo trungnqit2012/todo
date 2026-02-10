@@ -48,7 +48,7 @@ function App() {
             <span className="hidden sm:inline">{user.email}</span>
             <button
               onClick={signOut}
-              className="px-3 py-1.5 rounded-lg
+              className="px-3 py-1.5 rounded-lg cursor-pointer
                          bg-slate-100 hover:bg-slate-200"
             >
               Logout

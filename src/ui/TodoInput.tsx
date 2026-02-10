@@ -39,7 +39,7 @@ export function TodoInput({ value, onChange, onSubmit, isAdding }: Props) {
           flex items-center justify-center gap-2
           font-medium text-white
           bg-blue-500 hover:bg-blue-600
-          active:scale-95 transition
+          active:scale-95 transition cursor-pointer
           disabled:bg-slate-300
           disabled:cursor-not-allowed
           disabled:active:scale-100
