@@ -23,23 +23,26 @@ type UITodo = (Todo | OptimisticTodo) & PendingDeleteState;
 export function useTodos() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  /** 🔑 INIT FROM URL */
-  const initialPage = Number(searchParams.get("page")) || 1;
-  const initialFilter = (searchParams.get("filter") as Filter) || "all";
+  /* ---------- init from URL ---------- */
 
-  /** 🔑 STATE GỐC */
+  const initialFilter = (searchParams.get("filter") as Filter) || "all";
+  const initialPage = Number(searchParams.get("page")) || 1;
+
+  /* ---------- state ---------- */
+
   const [allTodos, setAllTodos] = useState<UITodo[]>([]);
   const [filter, setFilter] = useState<Filter>(initialFilter);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
 
-  /** 🔹 PAGING */
-  const [page, setPage] = useState(initialPage);
+  /* ---------- paging ---------- */
 
-  const pendingDeletes = useRef<Map<string, number>>(new Map());
+  const [page, setPage] = useState(initialPage);
 
   const PAGE_SIZE = APP_CONFIG.PAGE_SIZE;
   const UNDO_TIMEOUT = APP_CONFIG.UNDO_TIMEOUT;
+
+  const pendingDeletes = useRef<Map<string, number>>(new Map());
 
   /* ---------- sync URL ---------- */
 
@@ -73,7 +76,7 @@ export function useTodos() {
     return allTodos;
   }, [allTodos, filter]);
 
-  /* ---------- paging ---------- */
+  /* ---------- paging logic ---------- */
 
   const totalPages = Math.max(1, Math.ceil(filteredTodos.length / PAGE_SIZE));
 
@@ -86,6 +89,35 @@ export function useTodos() {
   useEffect(() => {
     setPage(1);
   }, [filter]);
+
+  /* ---------- keyboard pagination (← →) ---------- */
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+
+      // bỏ qua khi đang gõ input / textarea / contenteditable
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === "ArrowLeft") {
+        setPage((p) => Math.max(p - 1, 1));
+      }
+
+      if (e.key === "ArrowRight") {
+        setPage((p) => Math.min(p + 1, totalPages));
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [totalPages]);
 
   /* ---------- derived (GLOBAL STATS) ---------- */
 
@@ -107,6 +139,19 @@ export function useTodos() {
   /* ---------- add ---------- */
 
   const add = async (title: string) => {
+    const trimmed = title.trim();
+
+    // guard: empty
+    if (!trimmed) return;
+
+    // guard: max length (defensive, dù UI đã chặn)
+    if (trimmed.length > APP_CONFIG.MAX_TODO_TITLE_LENGTH) {
+      toast.error(
+        `Todo title must be ≤ ${APP_CONFIG.MAX_TODO_TITLE_LENGTH} characters`,
+      );
+      return;
+    }
+
     if (isAdding) return;
     setIsAdding(true);
 
@@ -114,21 +159,24 @@ export function useTodos() {
 
     const optimisticTodo: OptimisticTodo = {
       id: tempId,
-      title,
+      title: trimmed,
       completed: false,
       optimistic: true,
     };
 
+    // optimistic insert (đầu list)
     setAllTodos((prev) => [optimisticTodo, ...prev]);
 
     const toastId = toast.loading("Adding todo...");
 
     try {
-      const saved = await addTodo(title);
+      const saved = await addTodo(trimmed);
+
       setAllTodos((prev) => prev.map((t) => (t.id === tempId ? saved : t)));
+
       toast.success("Todo added", { id: toastId });
 
-      // 👉 add xong quay về page 1 (UX tốt hơn)
+      // UX: add xong quay về page 1
       setPage(1);
     } catch {
       setAllTodos((prev) => prev.filter((t) => t.id !== tempId));
