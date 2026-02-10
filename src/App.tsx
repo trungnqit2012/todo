@@ -1,69 +1,25 @@
-import { useState } from "react";
-import { useTodos } from "./hooks/useTodos";
+import { useAuth } from "./hooks/useAuth";
+import { signOut } from "./api/authApi";
+import AuthForm from "./AuthForm";
+import TodoApp from "./TodoApp";
 
 function App() {
-  const {
-    todos,
-    itemsLeft,
-    loading,
-    error,
-    filter,
-    setFilter,
-    add,
-    toggle,
-    remove,
-  } = useTodos();
+  const { user, loading } = useAuth();
 
-  const [text, setText] = useState("");
+  if (loading) return <p>Loading session...</p>;
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (!user) {
+    return <AuthForm />;
+  }
 
   return (
     <div style={{ padding: 24 }}>
-      <h1>Todo</h1>
+      <header>
+        <p>Hi {user.email}</p>
+        <button onClick={signOut}>Logout</button>
+      </header>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!text.trim()) return;
-          add(text);
-          setText("");
-        }}
-      >
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Nhập việc cần làm..."
-        />
-        <button>Add</button>
-      </form>
-
-      <p>{itemsLeft} items left</p>
-
-      <div>
-        <button onClick={() => setFilter("all")}>All</button>
-        <button onClick={() => setFilter("active")}>Active</button>
-        <button onClick={() => setFilter("completed")}>Completed</button>
-        <p>Current filter: {filter}</p>
-      </div>
-
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id}>
-            <label>
-              <input
-                type="checkbox"
-                checked={todo.completed}
-                onChange={(e) => toggle(todo.id, e.target.checked)}
-              />
-              {todo.title}
-            </label>
-
-            <button onClick={() => remove(todo.id)}>❌</button>
-          </li>
-        ))}
-      </ul>
+      <TodoApp />
     </div>
   );
 }
