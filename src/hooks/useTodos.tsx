@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getTodos, addTodo, toggleTodo, deleteTodo } from "../api/todoApi";
 import type { Filter } from "../types/filter";
@@ -20,19 +21,34 @@ type UITodo = (Todo | OptimisticTodo) & PendingDeleteState;
 /* ---------- hook ---------- */
 
 export function useTodos() {
-  /** 🔑 STATE GỐC – KHÔNG FILTER */
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  /** 🔑 INIT FROM URL */
+  const initialPage = Number(searchParams.get("page")) || 1;
+  const initialFilter = (searchParams.get("filter") as Filter) || "all";
+
+  /** 🔑 STATE GỐC */
   const [allTodos, setAllTodos] = useState<UITodo[]>([]);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(initialFilter);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
 
   /** 🔹 PAGING */
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
 
   const pendingDeletes = useRef<Map<string, number>>(new Map());
 
   const PAGE_SIZE = APP_CONFIG.PAGE_SIZE;
   const UNDO_TIMEOUT = APP_CONFIG.UNDO_TIMEOUT;
+
+  /* ---------- sync URL ---------- */
+
+  useEffect(() => {
+    setSearchParams({
+      page: String(page),
+      filter,
+    });
+  }, [page, filter, setSearchParams]);
 
   /* ---------- load ---------- */
 
@@ -111,6 +127,9 @@ export function useTodos() {
       const saved = await addTodo(title);
       setAllTodos((prev) => prev.map((t) => (t.id === tempId ? saved : t)));
       toast.success("Todo added", { id: toastId });
+
+      // 👉 add xong quay về page 1 (UX tốt hơn)
+      setPage(1);
     } catch {
       setAllTodos((prev) => prev.filter((t) => t.id !== tempId));
       toast.error("Failed to add todo", { id: toastId });
