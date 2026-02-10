@@ -18,6 +18,11 @@ export default function TodoApp() {
     remove,
     clearCompleted,
     isAdding,
+
+    page,
+    totalPages,
+    nextPage,
+    prevPage,
   } = useTodos();
 
   const [text, setText] = useState("");
@@ -52,7 +57,35 @@ export default function TodoApp() {
       {todos.length === 0 ? (
         <EmptyState />
       ) : (
-        <TodoList todos={todos} onToggle={toggle} onDelete={remove} />
+        <>
+          <TodoList todos={todos} onToggle={toggle} onDelete={remove} />
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <button
+                onClick={prevPage}
+                disabled={page === 1}
+                className="px-3 py-1.5 rounded-lg bg-slate-100
+                           disabled:opacity-50"
+              >
+                Prev
+              </button>
+
+              <span className="text-sm text-slate-600">
+                Page {page} / {totalPages}
+              </span>
+
+              <button
+                onClick={nextPage}
+                disabled={page === totalPages}
+                className="px-3 py-1.5 rounded-lg bg-slate-100
+                           disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

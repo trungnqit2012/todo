@@ -17,6 +17,7 @@ type PendingDeleteState = {
 type UITodo = (Todo | OptimisticTodo) & PendingDeleteState;
 
 const UNDO_TIMEOUT = 4000;
+const PAGE_SIZE = 10;
 
 /* ---------- hook ---------- */
 
@@ -26,6 +27,9 @@ export function useTodos() {
   const [filter, setFilter] = useState<Filter>("all");
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+
+  /** 🔹 PAGING */
+  const [page, setPage] = useState(1);
 
   const pendingDeletes = useRef<Map<string, number>>(new Map());
 
@@ -51,6 +55,20 @@ export function useTodos() {
 
     return allTodos;
   }, [allTodos, filter]);
+
+  /* ---------- paging ---------- */
+
+  const totalPages = Math.max(1, Math.ceil(filteredTodos.length / PAGE_SIZE));
+
+  const pagedTodos = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredTodos.slice(start, start + PAGE_SIZE);
+  }, [filteredTodos, page]);
+
+  // reset page khi đổi filter
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
 
   /* ---------- derived (GLOBAL STATS) ---------- */
 
@@ -90,9 +108,7 @@ export function useTodos() {
 
     try {
       const saved = await addTodo(title);
-
       setAllTodos((prev) => prev.map((t) => (t.id === tempId ? saved : t)));
-
       toast.success("Todo added", { id: toastId });
     } catch {
       setAllTodos((prev) => prev.filter((t) => t.id !== tempId));
@@ -192,17 +208,26 @@ export function useTodos() {
   /* ---------- return ---------- */
 
   return {
-    todos: filteredTodos,
+    todos: pagedTodos,
     loading,
+
     filter,
     setFilter,
+
     itemsLeft,
     completedCount,
     hasPendingDelete,
+
     add,
     toggle,
     remove,
     clearCompleted,
     isAdding,
+
+    // paging
+    page,
+    totalPages,
+    nextPage: () => setPage((p) => Math.min(p + 1, totalPages)),
+    prevPage: () => setPage((p) => Math.max(p - 1, 1)),
   };
 }
