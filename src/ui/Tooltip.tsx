@@ -57,7 +57,7 @@ export function Tooltip({ content, children, delay = 200 }: Props) {
   return (
     <div
       ref={wrapperRef}
-      className="relative inline-block"
+      className="relative inline-flex"
       onMouseEnter={show}
       onMouseLeave={hide}
     >

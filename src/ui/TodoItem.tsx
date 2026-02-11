@@ -1,4 +1,5 @@
 import { UITodo } from "./TodoList";
+import { Tooltip } from "./Tooltip";
 
 type Props = {
   todo: UITodo;
@@ -38,7 +39,7 @@ export function TodoItem({ todo, onToggle, onDelete }: Props) {
       {/* TITLE */}
       <span
         className={`
-          flex-1 break-words
+          flex-1 min-w-0 break-words
           transition-all duration-200
           ${todo.completed ? "line-through text-slate-400" : "text-slate-700"}
         `}
@@ -46,18 +47,21 @@ export function TodoItem({ todo, onToggle, onDelete }: Props) {
         {todo.title}
       </span>
 
-      {/* DELETE */}
-      <button
-        onClick={() => onDelete(todo.id)}
-        className="
-          text-slate-400 hover:text-red-500
-          transition-transform duration-150
-          hover:scale-110
-          active:scale-95
-        "
-      >
-        ✕
-      </button>
+      {/* DELETE WITH TOOLTIP */}
+      <Tooltip content="Delete todo">
+        <button
+          onClick={() => onDelete(todo.id)}
+          className="
+            relative
+            text-slate-400 hover:text-red-500
+            transition-transform duration-150
+            hover:scale-110
+            active:scale-95 cursor-pointer
+          "
+        >
+          ✕
+        </button>
+      </Tooltip>
     </li>
   );
 }
