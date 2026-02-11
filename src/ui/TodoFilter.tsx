@@ -45,7 +45,7 @@ export function TodoFilter({
               "text-sm transition",
               disabled
                 ? "text-slate-300 cursor-not-allowed"
-                : "text-red-400 hover:text-red-600",
+                : "text-red-400 hover:text-red-600 cursor-pointer",
             )}
           >
             Clear ({completedCount})

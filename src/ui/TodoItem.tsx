@@ -1,13 +1,4 @@
-import clsx from "clsx";
-import { useCallback, useState } from "react";
-import { Tooltip } from "./Tooltip";
-
-export type UITodo = {
-  id: string;
-  title: string;
-  completed: boolean;
-  pendingDelete?: boolean;
-};
+import { UITodo } from "./TodoList";
 
 type Props = {
   todo: UITodo;
@@ -16,99 +7,54 @@ type Props = {
 };
 
 export function TodoItem({ todo, onToggle, onDelete }: Props) {
-  const isDeleting = todo.pendingDelete;
-
-  const [isClamped, setIsClamped] = useState(false);
-
-  // ✅ Callback ref — đo DOM đúng cách, không effect
-  const titleRef = useCallback((el: HTMLSpanElement | null) => {
-    if (!el) return;
-
-    const isOverflowing =
-      el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth;
-
-    // ❗ chỉ setState khi THỰC SỰ đổi
-    setIsClamped((prev) => (prev !== isOverflowing ? isOverflowing : prev));
-  }, []);
-
-  const titleNode = (
-    <span
-      ref={titleRef}
-      className={clsx(
-        "block text-sm select-none",
-        "line-clamp-1 sm:line-clamp-2",
-        todo.completed && "line-through text-slate-400",
-      )}
-    >
-      {todo.title}
-    </span>
-  );
-
   return (
     <li
-      className={clsx(
-        "flex items-start justify-between gap-3 px-3 py-2 rounded-xl transition-all",
-        "hover:bg-slate-50",
-        isDeleting && "opacity-50 line-through pointer-events-none",
-      )}
+      className={`
+        flex items-center gap-3
+        px-4 py-3 rounded-xl
+        bg-slate-50
+        transition-all duration-200 ease-out
+        ${todo.pendingDelete ? "opacity-40 blur-[1px]" : "opacity-100"}
+        ${todo.completed ? "opacity-70 scale-[0.98]" : "opacity-100 scale-100"}
+      `}
     >
-      {/* LEFT */}
-      <label className="flex items-start gap-3 cursor-pointer min-w-0 flex-1">
-        <input
-          type="checkbox"
-          checked={todo.completed}
-          disabled={isDeleting}
-          onChange={(e) => onToggle(todo.id, e.target.checked)}
-          className="sr-only"
-        />
+      {/* CHECKBOX */}
+      <input
+        type="checkbox"
+        checked={todo.completed}
+        onChange={(e) => onToggle(todo.id, e.target.checked)}
+        className="
+          w-5 h-5
+          accent-blue-500
+          cursor-pointer
+          transition-transform
+          active:scale-90
+        "
+      />
 
-        {/* Checkbox */}
-        <span
-          className={clsx(
-            "mt-1 w-5 h-5 shrink-0 rounded-full border flex items-center justify-center transition",
-            todo.completed ? "bg-blue-500 border-blue-500" : "border-slate-300",
-          )}
-        >
-          {todo.completed && (
-            <span className="text-white text-sm checkbox-pop">✓</span>
-          )}
-        </span>
+      {/* TITLE */}
+      <span
+        className={`
+          flex-1 break-words
+          transition-all duration-200
+          ${todo.completed ? "line-through text-slate-400" : "text-slate-700"}
+        `}
+      >
+        {todo.title}
+      </span>
 
-        {/* TITLE */}
-        {isClamped ? (
-          <Tooltip content={todo.title}>{titleNode}</Tooltip>
-        ) : (
-          titleNode
-        )}
-      </label>
-
-      {/* RIGHT */}
-      <div className="w-5 h-5 flex items-center justify-center shrink-0">
-        {isDeleting ? (
-          <span
-            className="
-              w-4 h-4
-              border-2 border-slate-300
-              border-t-slate-500
-              rounded-full
-              animate-spin
-            "
-          />
-        ) : (
-          <Tooltip content="Delete todo">
-            <button
-              onClick={() => onDelete(todo.id)}
-              className="
-                text-slate-400 hover:text-red-500
-                transition cursor-pointer
-              "
-              aria-label={`Delete todo ${todo.title}`}
-            >
-              ✕
-            </button>
-          </Tooltip>
-        )}
-      </div>
+      {/* DELETE */}
+      <button
+        onClick={() => onDelete(todo.id)}
+        className="
+          text-slate-400 hover:text-red-500
+          transition-transform
+          hover:scale-110
+          active:scale-95
+        "
+      >
+        ✕
+      </button>
     </li>
   );
 }

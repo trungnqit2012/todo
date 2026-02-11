@@ -2,7 +2,7 @@ import { TodoItem } from "./TodoItem";
 
 /**
  * Todo dành cho UI
- * KHÔNG phụ thuộc DB fields (created_at)
+ * KHÔNG phụ thuộc DB fields
  */
 export type UITodo = {
   id: string;
@@ -19,7 +19,13 @@ type Props = {
 
 export function TodoList({ todos, onToggle, onDelete }: Props) {
   return (
-    <ul className="space-y-2">
+    <ul
+      className="
+        space-y-2
+        transition-opacity duration-200
+        animate-[fadeIn_0.2s_ease-out]
+      "
+    >
       {todos.map((todo) => (
         <TodoItem
           key={todo.id}

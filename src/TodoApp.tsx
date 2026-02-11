@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTodos } from "./hooks/useTodos";
 import { TodoInput } from "./ui/TodoInput";
 import { TodoFilter } from "./ui/TodoFilter";
 import { TodoList } from "./ui/TodoList";
 import { EmptyState } from "./ui/EmptyState";
+import { ConfirmDialog } from "./ui/ConfirmDialog";
 
 /* ---------- pagination helper ---------- */
 function getPagination(current: number, total: number) {
@@ -28,6 +29,27 @@ function getPagination(current: number, total: number) {
   return pages;
 }
 
+/* ---------- empty state helper ---------- */
+function getEmptyStateContent(filter: "all" | "active" | "completed") {
+  switch (filter) {
+    case "active":
+      return {
+        title: "No active todos 🎉",
+        description: "You’ve completed everything. Nice work!",
+      };
+    case "completed":
+      return {
+        title: "No completed todos yet",
+        description: "Finish some tasks and they’ll show up here.",
+      };
+    default:
+      return {
+        title: "No todos yet",
+        description: "Add your first todo above 👆",
+      };
+  }
+}
+
 export default function TodoApp() {
   const {
     todos,
@@ -50,19 +72,30 @@ export default function TodoApp() {
   } = useTodos();
 
   const [text, setText] = useState("");
-
-  // tooltip hover state
   const [showHint, setShowHint] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  const handleAdd = () => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const paginationDisabled = hasPendingDelete;
+
+  const handleAdd = async () => {
     if (!text.trim()) return;
     add(text);
     setText("");
   };
 
+  useEffect(() => {
+    if (!isAdding) {
+      inputRef.current?.focus();
+    }
+  }, [isAdding]);
+
   return (
     <div>
       <TodoInput
+        ref={inputRef}
         value={text}
         onChange={setText}
         onSubmit={handleAdd}
@@ -77,15 +110,21 @@ export default function TodoApp() {
           onChange={setFilter}
           completedCount={completedCount}
           disabled={hasPendingDelete}
-          onClearCompleted={clearCompleted}
+          onClearCompleted={() => {
+            if (completedCount === 0) return;
+            setShowClearConfirm(true);
+          }}
         />
       </div>
 
       {todos.length === 0 ? (
-        <EmptyState />
+        <EmptyState {...getEmptyStateContent(filter)} />
       ) : (
         <>
-          <TodoList todos={todos} onToggle={toggle} onDelete={remove} />
+          {/* TODO LIST (focus target) */}
+          <div ref={listRef} tabIndex={-1}>
+            <TodoList todos={todos} onToggle={toggle} onDelete={remove} />
+          </div>
 
           {/* ---------- PAGINATION ---------- */}
           {totalPages > 1 && (
@@ -94,7 +133,7 @@ export default function TodoApp() {
               onMouseEnter={() => setShowHint(true)}
               onMouseLeave={() => setShowHint(false)}
             >
-              {/* TOOLTIP – HOVER SHOW */}
+              {/* TOOLTIP */}
               {showHint && (
                 <div
                   style={{
@@ -109,45 +148,45 @@ export default function TodoApp() {
                     zIndex: 50,
                   }}
                 >
-                  Use ← → to navigate
+                  {paginationDisabled
+                    ? "Finish undo action first"
+                    : "Use ← → to navigate"}
                 </div>
               )}
 
-              {/* PAGINATION CONTROLS */}
               <div className="flex items-center gap-2 flex-wrap">
-                {/* PREV */}
                 <button
                   onClick={prevPage}
-                  disabled={page === 1}
-                  className="
-                    px-3 py-1.5 rounded-lg bg-slate-100
-                    cursor-pointer hover:bg-slate-200
-                    disabled:opacity-50
-                    disabled:cursor-not-allowed
-                  "
+                  disabled={page === 1 || paginationDisabled}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Prev
                 </button>
 
-                {/* PAGE NUMBERS + ELLIPSIS */}
                 {getPagination(page, totalPages).map((item, idx) =>
                   item === "..." ? (
                     <span
                       key={`ellipsis-${idx}`}
-                      className="px-2 text-slate-400 select-none cursor-default"
+                      className="px-2 text-slate-400 select-none"
                     >
                       …
                     </span>
                   ) : (
                     <button
                       key={`page-${item}-${idx}`}
-                      onClick={() => setPage(item)}
+                      onClick={() => !paginationDisabled && setPage(item)}
+                      disabled={paginationDisabled}
                       className={`
                           w-9 h-9 rounded-lg text-sm font-medium
                           ${
                             item === page
-                              ? "bg-blue-500 text-white cursor-default"
-                              : "bg-slate-100 hover:bg-slate-200 cursor-pointer"
+                              ? "bg-blue-500 text-white"
+                              : "bg-slate-100 hover:bg-slate-200"
+                          }
+                          ${
+                            paginationDisabled
+                              ? "opacity-50 cursor-not-allowed"
+                              : "cursor-pointer"
                           }
                         `}
                     >
@@ -156,16 +195,10 @@ export default function TodoApp() {
                   ),
                 )}
 
-                {/* NEXT */}
                 <button
                   onClick={nextPage}
-                  disabled={page === totalPages}
-                  className="
-                    px-3 py-1.5 rounded-lg bg-slate-100
-                    cursor-pointer hover:bg-slate-200
-                    disabled:opacity-50
-                    disabled:cursor-not-allowed
-                  "
+                  disabled={page === totalPages || paginationDisabled}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -174,6 +207,23 @@ export default function TodoApp() {
           )}
         </>
       )}
+
+      {/* ---------- CLEAR CONFIRM POPUP ---------- */}
+      <ConfirmDialog
+        open={showClearConfirm}
+        title={`Clear ${completedCount} completed todo${
+          completedCount > 1 ? "s" : ""
+        }?`}
+        description="This action cannot be undone."
+        confirmText="Clear"
+        cancelText="Cancel"
+        onCancel={() => setShowClearConfirm(false)}
+        onConfirm={() => {
+          clearCompleted();
+          setShowClearConfirm(false);
+          listRef.current?.focus();
+        }}
+      />
     </div>
   );
 }

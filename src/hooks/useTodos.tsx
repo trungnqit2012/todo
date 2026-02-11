@@ -38,7 +38,6 @@ export function useTodos() {
   /* ---------- paging ---------- */
 
   const [page, setPage] = useState(initialPage);
-
   const PAGE_SIZE = APP_CONFIG.PAGE_SIZE;
   const UNDO_TIMEOUT = APP_CONFIG.UNDO_TIMEOUT;
 
@@ -90,13 +89,21 @@ export function useTodos() {
     setPage(1);
   }, [filter]);
 
+  /* ---------- auto fallback page when current page is empty ---------- */
+  useEffect(() => {
+    if (page <= 1) return;
+
+    if (pagedTodos.length === 0) {
+      setPage((p) => Math.max(1, p - 1));
+    }
+  }, [pagedTodos, page]);
+
   /* ---------- keyboard pagination (← →) ---------- */
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
 
-      // bỏ qua khi đang gõ input / textarea / contenteditable
       if (
         target &&
         (target.tagName === "INPUT" ||
@@ -140,11 +147,8 @@ export function useTodos() {
 
   const add = async (title: string) => {
     const trimmed = title.trim();
-
-    // guard: empty
     if (!trimmed) return;
 
-    // guard: max length (defensive, dù UI đã chặn)
     if (trimmed.length > APP_CONFIG.MAX_TODO_TITLE_LENGTH) {
       toast.error(
         `Todo title must be ≤ ${APP_CONFIG.MAX_TODO_TITLE_LENGTH} characters`,
@@ -164,14 +168,12 @@ export function useTodos() {
       optimistic: true,
     };
 
-    // optimistic insert (đầu list)
     setAllTodos((prev) => [optimisticTodo, ...prev]);
 
     const toastId = toast.loading("Adding todo...");
 
     try {
       const saved = await addTodo(trimmed);
-
       setAllTodos((prev) => prev.map((t) => (t.id === tempId ? saved : t)));
 
       toast.success("Todo added", { id: toastId });

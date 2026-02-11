@@ -1,9 +1,13 @@
-export function EmptyState() {
+type Props = {
+  title: string;
+  description?: string;
+};
+
+export function EmptyState({ title, description }: Props) {
   return (
-    <div className="text-center text-slate-400 py-10 animate-fade-in">
-      <div className="text-4xl mb-2">✨</div>
-      <p className="font-medium text-slate-600">Chưa có công việc nào</p>
-      <p className="text-sm">Thêm việc đầu tiên để bắt đầu nhé</p>
+    <div className="py-12 text-center text-slate-400">
+      <p className="text-lg font-medium">{title}</p>
+      {description && <p className="mt-1 text-sm">{description}</p>}
     </div>
   );
 }
