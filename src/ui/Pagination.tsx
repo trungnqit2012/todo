@@ -1,3 +1,5 @@
+import { UI_TEXT } from "./uiText";
+
 type Props = {
   page: number;
   totalPages: number;
@@ -44,7 +46,7 @@ export function Pagination({
     <div className="relative flex justify-center mt-6 group">
       {/* TOOLTIP */}
       <div
-        className={`
+        className="
           absolute -top-9
           px-3 py-1 rounded-md
           text-xs text-white
@@ -53,9 +55,11 @@ export function Pagination({
           pointer-events-none
           transition
           group-hover:opacity-100
-        `}
+        "
       >
-        {disabled ? "Finish undo action first" : "Use ← → to navigate"}
+        {disabled
+          ? UI_TEXT.pagination.hint.disabled
+          : UI_TEXT.pagination.hint.normal}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
@@ -70,7 +74,7 @@ export function Pagination({
             disabled:cursor-not-allowed
           "
         >
-          Prev
+          {UI_TEXT.pagination.prev}
         </button>
 
         {/* PAGE NUMBERS */}
@@ -117,7 +121,7 @@ export function Pagination({
             disabled:cursor-not-allowed
           "
         >
-          Next
+          {UI_TEXT.pagination.next}
         </button>
       </div>
     </div>

@@ -9,6 +9,7 @@ import { EmptyState } from "./ui/EmptyState";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { Pagination } from "./ui/Pagination";
 import { getEmptyStateContent } from "./ui/emptyStateContent";
+import { UI_TEXT } from "./ui/uiText";
 
 export default function TodoApp() {
   const {
@@ -105,12 +106,10 @@ export default function TodoApp() {
       {/* CLEAR COMPLETED CONFIRM */}
       <ConfirmDialog
         open={clearConfirm.open}
-        title={`Clear ${completedCount} completed todo${
-          completedCount > 1 ? "s" : ""
-        }?`}
-        description="This action cannot be undone."
-        confirmText="Clear"
-        cancelText="Cancel"
+        title={UI_TEXT.confirm.clearCompleted.title(completedCount)}
+        description={UI_TEXT.confirm.clearCompleted.description}
+        confirmText={UI_TEXT.confirm.clearCompleted.confirm}
+        cancelText={UI_TEXT.confirm.clearCompleted.cancel}
         onCancel={clearConfirm.closeConfirm}
         onConfirm={clearConfirm.confirm}
       />
