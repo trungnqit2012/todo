@@ -14,8 +14,8 @@ export function TodoItem({ todo, onToggle, onDelete }: Props) {
         px-4 py-3 rounded-xl
         bg-slate-50
         transition-all duration-200 ease-out
-        ${todo.pendingDelete ? "opacity-40 blur-[1px]" : "opacity-100"}
-        ${todo.completed ? "opacity-70 scale-[0.98]" : "opacity-100 scale-100"}
+        ${todo.pendingDelete ? "opacity-40 blur-[1px]" : ""}
+        ${todo.completed ? "opacity-70 scale-[0.98]" : ""}
       `}
     >
       {/* CHECKBOX */}
@@ -24,10 +24,13 @@ export function TodoItem({ todo, onToggle, onDelete }: Props) {
         checked={todo.completed}
         onChange={(e) => onToggle(todo.id, e.target.checked)}
         className="
-          w-5 h-5
-          accent-blue-500
+          w-4 h-4
+          rounded-md
+          border border-slate-300
+          accent-blue-600
           cursor-pointer
-          transition-transform
+          transition-all duration-150
+          focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
           active:scale-90
         "
       />
@@ -48,7 +51,7 @@ export function TodoItem({ todo, onToggle, onDelete }: Props) {
         onClick={() => onDelete(todo.id)}
         className="
           text-slate-400 hover:text-red-500
-          transition-transform
+          transition-transform duration-150
           hover:scale-110
           active:scale-95
         "
