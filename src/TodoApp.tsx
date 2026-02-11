@@ -1,33 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTodos } from "./hooks/useTodos";
+import { useConfirmClearCompleted } from "./hooks/useConfirmClearCompleted";
 import { TodoInput } from "./ui/TodoInput";
 import { TodoFilter } from "./ui/TodoFilter";
 import { TodoList } from "./ui/TodoList";
 import { EmptyState } from "./ui/EmptyState";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
-
-/* ---------- pagination helper ---------- */
-function getPagination(current: number, total: number) {
-  const pages: (number | "...")[] = [];
-  const delta = 1;
-
-  const range = (start: number, end: number) => {
-    for (let i = start; i <= end; i++) pages.push(i);
-  };
-
-  pages.push(1);
-
-  const left = Math.max(2, current - delta);
-  const right = Math.min(total - 1, current + delta);
-
-  if (left > 2) pages.push("...");
-  range(left, right);
-  if (right < total - 1) pages.push("...");
-
-  if (total > 1) pages.push(total);
-
-  return pages;
-}
+import { Pagination } from "./ui/Pagination";
 
 /* ---------- empty state helper ---------- */
 function getEmptyStateContent(filter: "all" | "active" | "completed") {
@@ -72,20 +51,27 @@ export default function TodoApp() {
   } = useTodos();
 
   const [text, setText] = useState("");
-  const [showHint, setShowHint] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const paginationDisabled = hasPendingDelete;
+  /* ---------- confirm clear hook ---------- */
+  const clearConfirm = useConfirmClearCompleted({
+    completedCount,
+    onConfirm: () => {
+      clearCompleted();
+      listRef.current?.focus();
+    },
+  });
 
-  const handleAdd = async () => {
+  /* ---------- add ---------- */
+  const handleAdd = () => {
     if (!text.trim()) return;
     add(text);
     setText("");
   };
 
+  /* ---------- focus back to input after add ---------- */
   useEffect(() => {
     if (!isAdding) {
       inputRef.current?.focus();
@@ -110,10 +96,7 @@ export default function TodoApp() {
           onChange={setFilter}
           completedCount={completedCount}
           disabled={hasPendingDelete}
-          onClearCompleted={() => {
-            if (completedCount === 0) return;
-            setShowClearConfirm(true);
-          }}
+          onClearCompleted={clearConfirm.openConfirm}
         />
       </div>
 
@@ -121,108 +104,34 @@ export default function TodoApp() {
         <EmptyState {...getEmptyStateContent(filter)} />
       ) : (
         <>
-          {/* TODO LIST (focus target) */}
+          {/* TODO LIST */}
           <div ref={listRef} tabIndex={-1}>
             <TodoList todos={todos} onToggle={toggle} onDelete={remove} />
           </div>
 
-          {/* ---------- PAGINATION ---------- */}
-          {totalPages > 1 && (
-            <div
-              className="relative flex justify-center mt-6"
-              onMouseEnter={() => setShowHint(true)}
-              onMouseLeave={() => setShowHint(false)}
-            >
-              {/* TOOLTIP */}
-              {showHint && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "-36px",
-                    background: "#1e293b",
-                    color: "white",
-                    padding: "4px 8px",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    whiteSpace: "nowrap",
-                    zIndex: 50,
-                  }}
-                >
-                  {paginationDisabled
-                    ? "Finish undo action first"
-                    : "Use ← → to navigate"}
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={prevPage}
-                  disabled={page === 1 || paginationDisabled}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Prev
-                </button>
-
-                {getPagination(page, totalPages).map((item, idx) =>
-                  item === "..." ? (
-                    <span
-                      key={`ellipsis-${idx}`}
-                      className="px-2 text-slate-400 select-none"
-                    >
-                      …
-                    </span>
-                  ) : (
-                    <button
-                      key={`page-${item}-${idx}`}
-                      onClick={() => !paginationDisabled && setPage(item)}
-                      disabled={paginationDisabled}
-                      className={`
-                          w-9 h-9 rounded-lg text-sm font-medium
-                          ${
-                            item === page
-                              ? "bg-blue-500 text-white"
-                              : "bg-slate-100 hover:bg-slate-200"
-                          }
-                          ${
-                            paginationDisabled
-                              ? "opacity-50 cursor-not-allowed"
-                              : "cursor-pointer"
-                          }
-                        `}
-                    >
-                      {item}
-                    </button>
-                  ),
-                )}
-
-                <button
-                  onClick={nextPage}
-                  disabled={page === totalPages || paginationDisabled}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+          {/* PAGINATION */}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            disabled={hasPendingDelete}
+            onPageChange={setPage}
+            onPrev={prevPage}
+            onNext={nextPage}
+          />
         </>
       )}
 
-      {/* ---------- CLEAR CONFIRM POPUP ---------- */}
+      {/* CLEAR COMPLETED CONFIRM */}
       <ConfirmDialog
-        open={showClearConfirm}
+        open={clearConfirm.open}
         title={`Clear ${completedCount} completed todo${
           completedCount > 1 ? "s" : ""
         }?`}
         description="This action cannot be undone."
         confirmText="Clear"
         cancelText="Cancel"
-        onCancel={() => setShowClearConfirm(false)}
-        onConfirm={() => {
-          clearCompleted();
-          setShowClearConfirm(false);
-          listRef.current?.focus();
-        }}
+        onCancel={clearConfirm.closeConfirm}
+        onConfirm={clearConfirm.confirm}
       />
     </div>
   );
