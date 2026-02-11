@@ -1,33 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useTodos } from "./hooks/useTodos";
 import { useConfirmClearCompleted } from "./hooks/useConfirmClearCompleted";
+
 import { TodoInput } from "./ui/TodoInput";
 import { TodoFilter } from "./ui/TodoFilter";
 import { TodoList } from "./ui/TodoList";
 import { EmptyState } from "./ui/EmptyState";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { Pagination } from "./ui/Pagination";
-
-/* ---------- empty state helper ---------- */
-function getEmptyStateContent(filter: "all" | "active" | "completed") {
-  switch (filter) {
-    case "active":
-      return {
-        title: "No active todos 🎉",
-        description: "You’ve completed everything. Nice work!",
-      };
-    case "completed":
-      return {
-        title: "No completed todos yet",
-        description: "Finish some tasks and they’ll show up here.",
-      };
-    default:
-      return {
-        title: "No todos yet",
-        description: "Add your first todo above 👆",
-      };
-  }
-}
+import { getEmptyStateContent } from "./ui/emptyStateContent";
 
 export default function TodoApp() {
   const {
