@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+
 import { useTodos } from "./hooks/useTodos";
 import { useConfirmClearCompleted } from "./hooks/useConfirmClearCompleted";
 
@@ -12,6 +14,30 @@ import { getEmptyStateContent } from "./ui/emptyStateContent";
 import { UI_TEXT } from "./ui/uiText";
 
 export default function TodoApp() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  /* ===============================
+     ENSURE DEFAULT URL QUERY
+  =============================== */
+
+  useEffect(() => {
+    const hasPage = searchParams.get("page");
+    const hasFilter = searchParams.get("filter");
+
+    if (!hasPage || !hasFilter) {
+      const params = new URLSearchParams(searchParams);
+
+      if (!hasPage) params.set("page", "1");
+      if (!hasFilter) params.set("filter", "all");
+
+      setSearchParams(params);
+    }
+  }, []); // 👈 chạy 1 lần khi mount
+
+  /* ===============================
+     ORIGINAL LOGIC
+  =============================== */
+
   const {
     todos,
     filter,
@@ -24,7 +50,6 @@ export default function TodoApp() {
     remove,
     clearCompleted,
     isAdding,
-
     page,
     totalPages,
     setPage,
@@ -37,7 +62,6 @@ export default function TodoApp() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  /* ---------- confirm clear hook ---------- */
   const clearConfirm = useConfirmClearCompleted({
     completedCount,
     onConfirm: () => {
@@ -46,14 +70,12 @@ export default function TodoApp() {
     },
   });
 
-  /* ---------- add ---------- */
   const handleAdd = () => {
     if (!text.trim()) return;
     add(text);
     setText("");
   };
 
-  /* ---------- focus back to input after add ---------- */
   useEffect(() => {
     if (!isAdding) {
       inputRef.current?.focus();
@@ -86,12 +108,10 @@ export default function TodoApp() {
         <EmptyState {...getEmptyStateContent(filter)} />
       ) : (
         <>
-          {/* TODO LIST */}
           <div ref={listRef} tabIndex={-1}>
             <TodoList todos={todos} onToggle={toggle} onDelete={remove} />
           </div>
 
-          {/* PAGINATION */}
           <Pagination
             page={page}
             totalPages={totalPages}
@@ -103,7 +123,6 @@ export default function TodoApp() {
         </>
       )}
 
-      {/* CLEAR COMPLETED CONFIRM */}
       <ConfirmDialog
         open={clearConfirm.open}
         title={UI_TEXT.confirm.clearCompleted.title(completedCount)}
