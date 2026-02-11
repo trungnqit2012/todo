@@ -9,10 +9,16 @@ export default function AuthForm() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!email.trim() || !password.trim()) {
+      setError("Email and password are required.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email.trim(), password.trim());
 
     if (error) {
       setError(error.message);
@@ -22,10 +28,22 @@ export default function AuthForm() {
   }
 
   async function handleRegister() {
+    if (!email.trim() || !password.trim()) {
+      setError("Email and password are required.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
-    const { data, error } = await signUp(email, password);
+    const { data, error } = await signUp(email.trim(), password.trim());
+
+    console.log("SIGN UP RESULT:", { data, error });
 
     if (error) {
       setError(error.message);
@@ -33,9 +51,9 @@ export default function AuthForm() {
       return;
     }
 
-    // DEV MODE (confirm email OFF)
+    // Nếu Confirm email đang bật
     if (!data.session) {
-      setError("User created. Please login.");
+      setError("Account created. Please check your email to confirm.");
     }
 
     setLoading(false);
@@ -52,6 +70,7 @@ export default function AuthForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          style={{ display: "block", marginBottom: 8, width: "100%" }}
         />
 
         <input
@@ -60,6 +79,7 @@ export default function AuthForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          style={{ display: "block", marginBottom: 8, width: "100%" }}
         />
 
         <div style={{ marginTop: 12 }}>
